@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy-Preserving Smart Band</title>
+<style>
+:root{--bg:#f3f5f8;--card:#fff;--ink:#1d2632;--muted:#5e6b78;--line:#dce1e8;--blue:#4472C4;--row:#E9EBF5;
+  --ok:#2e7d32;--okbg:#e4f2e5;--bad:#b3261e;--badbg:#fbe3e1;--warn:#8a5a00;--warnbg:#fdf0d5;color-scheme:light}
+@media (prefers-color-scheme: dark){:root{--bg:#11161c;--card:#1a2129;--ink:#e5eaf0;--muted:#9aa6b2;--line:#2c3642;--blue:#7ea2e8;--row:#1f2833;
+  --ok:#81d185;--okbg:#1d321f;--bad:#f2928a;--badbg:#3b1e1c;--warn:#f0c46a;--warnbg:#382c14;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 "Segoe UI",Calibri,Arial,sans-serif}
+header{background:var(--blue);color:#fff;padding:12px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header h1{font-size:20px;margin:0;font-weight:600}
+header .sub{opacity:.85;font-size:14px}
+header .who{margin-left:auto;font-size:14px;display:flex;gap:10px;align-items:center}
+main{max-width:1280px;margin:0 auto;padding:16px;display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+section{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:16px 18px;min-width:0}
+.s4{grid-column:span 4}.s5{grid-column:span 5}.s7{grid-column:span 7}.s8{grid-column:span 8}.s12{grid-column:span 12}
+@media (max-width:960px){.s4,.s5,.s7,.s8{grid-column:span 12}}
+h2{font-size:16px;margin:0 0 12px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+h2 small{font-weight:400;color:var(--muted);font-size:13px}
+.big{font-size:44px;font-weight:600;line-height:1}
+.unit{font-size:16px;color:var(--muted);font-weight:400}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin-top:14px;font-size:14px}
+.kv span:nth-child(odd){color:var(--muted)}
+.pill{display:inline-block;padding:2px 9px;border-radius:10px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.ok{background:var(--okbg);color:var(--ok)}.bad{background:var(--badbg);color:var(--bad)}.warn{background:var(--warnbg);color:var(--warn)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{background:var(--blue);color:#fff;text-align:left;padding:6px 8px;font-weight:600;white-space:nowrap}
+td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr:nth-child(even) td{background:var(--row)}
+.scroll{overflow-x:auto}
+.btns{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+button{font:inherit;padding:9px 12px;border-radius:5px;border:1px solid var(--blue);background:var(--blue);color:#fff;cursor:pointer;text-align:left}
+button.atk{background:var(--card);color:var(--ink);border-color:var(--line)}
+button.atk b{display:block;color:var(--blue)}
+button.atk small{color:var(--muted)}
+button:hover{filter:brightness(1.05)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+button:disabled{opacity:.6;cursor:wait}
+input{font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:5px;background:var(--card);color:var(--ink)}
+.result{margin-top:14px;border:1px solid var(--line);border-radius:6px;padding:12px 14px;display:none}
+.verdict{font-size:20px;font-weight:700;margin:2px 0 8px}
+.muted{color:var(--muted)}
+.mono{font-family:Consolas,"Courier New",monospace;font-size:13px}
+ul.plain{margin:0;padding-left:18px}
+ul.plain li{margin-bottom:5px}
+#login{max-width:480px;margin:70px auto}
+.hidden{display:none!important}
+.new td{animation:flash 1.6s ease-out}
+@keyframes flash{from{background:var(--warnbg)}}
+@media (prefers-reduced-motion:reduce){.new td{animation:none}}
+svg text{fill:var(--muted);font-size:11px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Privacy-Preserving Smart Band</h1><span class="sub">Secure IoT health monitoring dashboard</span>
+  <span class="who" id="who"></span>
+</header>
+
+<section id="login">
+  <h2>Sign in</h2>
+  <p class="muted">Enter your dashboard token. It is kept only in this browser tab.</p>
+  <div style="display:flex;gap:8px"><input id="tok" type="password" style="flex:1" placeholder="Dashboard token" aria-label="Dashboard token"><button id="go">Sign in</button></div>
+  <p id="loginmsg" class="bad pill hidden" style="margin-top:10px"></p>
+</section>
+
+<main id="app" class="hidden">
+  <section class="s4">
+    <h2>Live reading <small id="age"></small></h2>
+    <div class="big"><span id="bpm">--</span> <span class="unit">BPM</span></div>
+    <div class="muted" style="margin:2px 0 12px">Pulse estimate</div>
+    <div class="big" style="font-size:34px"><span id="mq">--</span> <span class="unit">raw ADC</span></div>
+    <div class="muted">MQ135 gas sensor (not ppm, not medical)</div>
+    <div class="kv"><span>Device</span><span id="dev" class="mono">-</span><span>Sequence</span><span id="seq">-</span><span>Received</span><span id="rt">-</span></div>
+  </section>
+
+  <section class="s8">
+    <h2>Pulse history <small>last 30 accepted readings from the real band</small></h2>
+    <svg id="chart" viewBox="0 0 760 220" width="100%" height="220" role="img" aria-label="Pulse history chart"></svg>
+  </section>
+
+  <section class="s7">
+    <h2>Attack demo <small>each button sends a real request to this server</small></h2>
+    <div class="btns">
+      <button class="atk" data-s="valid"><b>Valid reading</b><small>correctly signed</small></button>
+      <button class="atk" data-s="tamper"><b>Tampering</b><small>value changed in transit</small></button>
+      <button class="atk" data-s="replay"><b>Replay</b><small>old message sent again</small></button>
+      <button class="atk" data-s="unknown"><b>Fake device</b><small>unregistered band</small></button>
+      <button class="atk" data-s="invalid"><b>Impossible value</b><small>pulse 999</small></button>
+      <button class="atk" data-s="nologin"><b>No login</b><small>read data without access</small></button>
+    </div>
+    <div class="result" id="result" aria-live="polite">
+      <div class="muted" id="rtitle"></div>
+      <div class="verdict" id="rverdict"></div>
+      <div class="scroll"><table><thead><tr><th>Request</th><th>HTTP</th><th>Server reply</th><th>Readings stored</th></tr></thead><tbody id="rsteps"></tbody></table></div>
+    </div>
+  </section>
+
+  <section class="s5">
+    <h2>Privacy controls</h2>
+    <ul class="plain">
+      <li><b>Data minimisation:</b> the band sends only pulse estimate and MQ135 value. No name, location or raw signal.</li>
+      <li><b>Pseudonymous ID:</b> readings are linked to <span class="mono">smartband-01</span>, not to a person.</li>
+      <li><b>Secret protection:</b> device keys are kept outside the readings database and never sent over the network.</li>
+      <li><b>Restricted access:</b> every data request needs a valid token; failures are logged.</li>
+      <li><b>Integrity:</b> HMAC-SHA-256 on every message, sequence numbers against replay.</li>
+    </ul>
+  </section>
+
+  <section class="s12">
+    <h2>Security events <small>rejected requests and access failures, refreshed every 2 s</small></h2>
+    <div class="scroll"><table><thead><tr><th>Time</th><th>Event</th><th>Device</th><th>Detail</th><th>Source IP</th></tr></thead><tbody id="events"></tbody></table></div>
+  </section>
+
+  <section class="s12">
+    <h2>Accepted readings <small>latest 10</small></h2>
+    <div class="scroll"><table><thead><tr><th>Received</th><th>Device</th><th>Seq</th><th>Pulse (BPM)</th><th>MQ135 raw</th></tr></thead><tbody id="readings"></tbody></table></div>
+  </section>
+</main>
+
+<script>
+(function(){
+  var TOK = sessionStorage.getItem('sb_tok') || '', seen = {}, timer = null;
+  function $(id){ return document.getElementById(id); }
+  function tm(ts){ return ts ? new Date(ts*1000).toLocaleTimeString() : ''; }
+  function cell(v){ var td=document.createElement('td'); if(v instanceof Node) td.appendChild(v); else td.textContent=(v===null||v===undefined)?'':String(v); return td; }
+  function pill(t,c){ var s=document.createElement('span'); s.className='pill '+c; s.textContent=t; return s; }
+  function rows(id, list, cols, empty){
+    var tb=$(id); tb.textContent='';
+    if(!list.length){ var tr=document.createElement('tr'), td=cell(empty); td.colSpan=cols; td.className='muted'; tr.appendChild(td); tb.appendChild(tr); return; }
+    list.forEach(function(r){ tb.appendChild(r); });
+  }
+  function api(path, opt){
+    opt=opt||{}; opt.headers=Object.assign({'Authorization':'Bearer '+TOK}, opt.headers||{});
+    return fetch(path,opt).then(function(r){ return r.json().catch(function(){return {};}).then(function(b){ return {status:r.status, body:b}; }); });
+  }
+  var EVT = {invalid_signature:'Invalid signature', replay_rejected:'Replay rejected', unknown_device:'Unknown device',
+    invalid_payload:'Invalid data', unauthorized_dashboard_access:'Unauthorised access', missing_headers:'Missing headers',
+    bad_sequence:'Bad sequence', oversized_request:'Oversized request', device_registered:'Device registered', device_disabled:'Device disabled'};
+
+  function signin(){
+    api('/api/readings/latest').then(function(r){
+      if(r.status!==200){ var m=$('loginmsg'); m.textContent='Access refused ('+r.status+'): '+(r.body.error||''); m.classList.remove('hidden'); sessionStorage.removeItem('sb_tok'); return; }
+      sessionStorage.setItem('sb_tok',TOK);
+      $('login').classList.add('hidden'); $('app').classList.remove('hidden');
+      var w=$('who'); w.textContent='Signed in ';
+      var out=document.createElement('button'); out.textContent='Sign out'; out.style.cssText='background:transparent;border-color:#fff;padding:5px 10px';
+      out.onclick=function(){ sessionStorage.removeItem('sb_tok'); location.reload(); }; w.appendChild(out);
+      refresh(); timer=setInterval(refresh,2000);
+    });
+  }
+
+  function chart(list){
+    var svg=$('chart'); svg.textContent=''; var NS='http://www.w3.org/2000/svg';
+    var pts=list.filter(function(r){return r.pulse_bpm!==null;}).slice(0,30).reverse();
+    function add(tag,attrs,text){ var e=document.createElementNS(NS,tag); for(var k in attrs) e.setAttribute(k,attrs[k]); if(text) e.textContent=text; svg.appendChild(e); return e; }
+    [40,80,120,160].forEach(function(v){ var y=200-(v-30)*1.25; add('line',{x1:40,x2:750,y1:y,y2:y,stroke:'var(--line)'}); add('text',{x:4,y:y+4},String(v)); });
+    if(pts.length<2){ add('text',{x:300,y:110},'Waiting for readings from the band'); return; }
+    var step=710/(pts.length-1), d='';
+    pts.forEach(function(p,i){ var x=40+i*step, y=200-(Math.max(30,Math.min(170,p.pulse_bpm))-30)*1.25; d+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1)+' '; add('circle',{cx:x,cy:y,r:3,fill:'var(--blue)'}); });
+    add('path',{d:d,fill:'none',stroke:'var(--blue)','stroke-width':2.5});
+  }
+
+  function refresh(){
+    api('/api/readings?limit=60').then(function(r){
+      if(r.status===401){ sessionStorage.removeItem('sb_tok'); location.reload(); return; }
+      var all=r.body||[], real=all.filter(function(x){return x.device_id!=='smartband-demo';});
+      var last=real[0]||all[0];
+      if(last){
+        $('bpm').textContent = last.pulse_bpm===null ? 'no signal' : last.pulse_bpm;
+        $('mq').textContent = last.mq135_raw; $('dev').textContent = last.device_id; $('seq').textContent = last.seq; $('rt').textContent = tm(last.received_at);
+        var age=Math.round(Date.now()/1000-last.received_at);
+        $('age').textContent=''; $('age').appendChild(age<30 ? pill('band online','ok') : pill('no data for '+age+' s','warn'));
+      }
+      chart(real);
+      rows('readings', all.slice(0,10).map(function(x){ var tr=document.createElement('tr');
+        [tm(x.received_at), x.device_id, x.seq, x.pulse_bpm===null?'no signal':x.pulse_bpm, x.mq135_raw].forEach(function(v){ tr.appendChild(cell(v)); }); return tr; }), 5, 'No readings yet.');
+    });
+    api('/api/security-events?limit=15').then(function(r){
+      if(r.status!==200) return;
+      rows('events', r.body.map(function(e){ var tr=document.createElement('tr'), k=e.at+e.event_type+(e.detail||'');
+        if(!seen[k] && Object.keys(seen).length) tr.className='new'; seen[k]=1;
+        var bad = !/registered|disabled/.test(e.event_type);
+        [tm(e.at), pill(EVT[e.event_type]||e.event_type, bad?'bad':'ok'), e.device_id, e.detail, e.client_ip].forEach(function(v){ tr.appendChild(cell(v)); }); return tr; }), 5, 'No security events yet.');
+    });
+  }
+
+  [].forEach.call(document.querySelectorAll('button.atk'), function(b){
+    b.onclick=function(){
+      var all=document.querySelectorAll('button.atk'); [].forEach.call(all,function(x){x.disabled=true;});
+      api('/demo/'+b.getAttribute('data-s'),{method:'POST'}).then(function(r){
+        [].forEach.call(all,function(x){x.disabled=false;});
+        var box=$('result'); box.style.display='block';
+        if(r.status!==200){ $('rtitle').textContent=''; $('rverdict').textContent='Demo unavailable: '+(r.body.error||r.status); $('rsteps').textContent=''; return; }
+        var d=r.body, ok=d.steps.every(function(s){return s.http<300;}), blocked=d.steps.some(function(s){return s.http>=400;});
+        $('rtitle').textContent=d.scenario+'  |  expected: '+d.expected;
+        $('rverdict').textContent = blocked ? 'BLOCKED by the server' : (ok ? 'ACCEPTED and stored' : '');
+        $('rverdict').style.color = blocked ? 'var(--bad)' : 'var(--ok)';
+        rows('rsteps', d.steps.map(function(s){ var tr=document.createElement('tr');
+          [s.label, pill(String(s.http), s.http<300?'ok':'bad'), s.reply, s.stored].forEach(function(v){ tr.appendChild(cell(v)); }); return tr; }), 4, '');
+        refresh();
+      });
+    };
+  });
+  $('go').onclick=function(){ TOK=$('tok').value.trim(); if(TOK) signin(); };
+  $('tok').addEventListener('keydown',function(e){ if(e.key==='Enter') $('go').click(); });
+  if(TOK) signin();
+})();
+</script>
+</body>
+</html>
