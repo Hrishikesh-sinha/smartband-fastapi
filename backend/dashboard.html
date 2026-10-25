@@ -21,6 +21,8 @@ section{background:var(--card);border:1px solid var(--line);border-radius:6px;pa
 @media (max-width:960px){.s4,.s5,.s7,.s8{grid-column:span 12}}
 h2{font-size:16px;margin:0 0 12px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
 h2 small{font-weight:400;color:var(--muted);font-size:13px}
+h3{font-size:14px;margin:12px 0 6px;color:var(--blue)}
+h3:first-of-type{margin-top:0}
 .big{font-size:44px;font-weight:600;line-height:1}
 .unit{font-size:16px;color:var(--muted);font-weight:400}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin-top:14px;font-size:14px}
@@ -74,7 +76,7 @@ svg text{fill:var(--muted);font-size:11px}
     <div class="big"><span id="bpm">--</span> <span class="unit">BPM</span></div>
     <div class="muted" style="margin:2px 0 12px">Pulse estimate</div>
     <div class="big" style="font-size:34px"><span id="mq">--</span> <span class="unit">raw ADC</span></div>
-    <div class="muted">MQ135(raw sensor value)</div>
+    <div class="muted">MQ135 (raw sensor value)</div>
     <div class="kv"><span>Device</span><span id="dev" class="mono">-</span><span>Sequence</span><span id="seq">-</span><span>Received</span><span id="rt">-</span></div>
   </section>
 
@@ -84,7 +86,7 @@ svg text{fill:var(--muted);font-size:11px}
   </section>
 
   <section class="s7">
-    <h2>Attack demo <small>each button sends a real request to this server</small></h2>
+    <h2>Attack demo <small>each button sends a real request to this server; the result is the server's actual reply</small></h2>
     <div class="btns">
       <button class="atk" data-s="valid"><b>Valid reading</b><small>correctly signed</small></button>
       <button class="atk" data-s="tamper"><b>Tampering</b><small>value changed in transit</small></button>
@@ -101,13 +103,21 @@ svg text{fill:var(--muted);font-size:11px}
   </section>
 
   <section class="s5">
-    <h2>Privacy controls</h2>
+    <h2>Privacy and security controls</h2>
+    <h3>Privacy</h3>
     <ul class="plain">
-      <li><b>Data minimisation:</b> the band sends only pulse estimate and MQ135 value. No name, location or raw signal.</li>
-      <li><b>Pseudonymous ID:</b> readings are linked to <span class="mono">smartband-01</span>, not to a person.</li>
-      <li><b>Secret protection:</b> device keys are kept outside the readings database and never sent over the network.</li>
-      <li><b>Restricted access:</b> every data request needs a valid token; failures are logged.</li>
-      <li><b>Integrity:</b> HMAC-SHA-256 on every message, sequence numbers against replay.</li>
+      <li><b>Data minimisation:</b> the band sends only the pulse estimate and the MQ135 value. No name, location or raw signal.</li>
+      <li><b>Pseudonymous ID:</b> readings are stored under <span class="mono">smartband-01</span>, not a person's name.</li>
+      <li><b>Restricted access:</b> every data request needs a valid login token.</li>
+    </ul>
+    <h3>Security</h3>
+    <ul class="plain">
+      <li><b>Encrypted transport:</b> HTTPS with a verified server certificate.</li>
+      <li><b>Message integrity:</b> every reading is signed with HMAC-SHA-256; changed messages are rejected.</li>
+      <li><b>Replay protection:</b> sequence numbers saved in the band's flash; old messages are rejected.</li>
+      <li><b>Input validation:</b> unregistered bands and impossible values are rejected before storage.</li>
+      <li><b>Secret protection:</b> device keys are never stored in the database or sent over the network.</li>
+      <li><b>Security logging:</b> every rejected request is recorded without storing secrets.</li>
     </ul>
   </section>
 
